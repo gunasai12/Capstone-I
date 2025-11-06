@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analysis Results - Traffic AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+        
+        .container {
+            max-width: 1400px;
+        }
+        
+        .timeline {
+            position: relative;
+        }
+        
+        .timeline .card {
+            transition: transform 0.2s;
+        }
+        
+        .timeline .card:hover {
+            transform: translateX(5px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2><i class="bi bi-camera-video"></i> Video Analysis Results</h2>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% if result.get('error') %}
+        <!-- Error Display -->
+        <div class="alert alert-danger">
+            <h5><i class="bi bi-exclamation-triangle"></i> Processing Error</h5>
+            <p>{{ result.error }}</p>
+        </div>
+        {% else %}
+        
+        <!-- Video Information -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Video Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Filename:</th>
+                                <td>{{ result.video_info.filename }}</td>
+                            </tr>
+                            <tr>
+                                <th>Resolution:</th>
+                                <td>{{ result.video_info.resolution }}</td>
+                            </tr>
+                            <tr>
+                                <th>Frame Rate:</th>
+                                <td>{{ result.video_info.fps }} fps</td>
+                            </tr>
+                            <tr>
+                                <th>Duration:</th>
+                                <td>{{ "%.1f"|format(result.video_info.duration) }} seconds</td>
+                            </tr>
+                            <tr>
+                                <th>Location:</th>
+                                <td>{{ result.location }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date/Time:</th>
+                                <td>{{ result.datetime }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Detection Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Frames Analyzed:</th>
+                                <td>{{ result.processing_info.frames_analyzed }}</td>
+                            </tr>
+                            <tr>
+                                <th>Processing Rate:</th>
+                                <td>{{ result.processing_info.processing_rate }}</td>
+                            </tr>
+                            <tr>
+                                <th>Total Violations:</th>
+                                <td><span class="badge bg-danger fs-6">{{ result.total_violations }}</span></td>
+                            </tr>
+                            <tr>
+                                <th>Violation Frames:</th>
+                                <td>{{ result.violations_timeline|length }}</td>
+                            </tr>
+                            <tr>
+                                <th>Total Fine Amount:</th>
+                                <td><strong class="text-danger">₹{{ "{:,}".format(result.total_fine) }}</strong></td>
+                            </tr>
+                            {% if result.plate_numbers %}
+                            <tr>
+                                <th>Detected Plates:</th>
+                                <td>{{ result.plate_numbers|join(', ') }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if result.violations_found %}
+        <!-- Violations Timeline -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Violations Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for frame_data in result.violations_timeline %}
+                    <div class="card mb-3 border-danger">
+                        <div class="card-header bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><strong>Timestamp:</strong> {{ frame_data.timestamp }} (Frame #{{ frame_data.frame_number }})</span>
+                                <span class="badge bg-danger">{{ frame_data.violations|length }} violation(s)</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <!-- Display annotated frame if available -->
+                                    {% if frame_data.get('frame_path') %}
+                                    <img src="{{ url_for('serve_violation_frame', path=frame_data.frame_path) }}" 
+                                         alt="Violation at {{ frame_data.timestamp }}" 
+                                         class="img-fluid border border-danger rounded">
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Violation Details:</h6>
+                                    <ul class="list-group">
+                                        {% for violation in frame_data.violations %}
+                                        <li class="list-group-item">
+                                            <strong>{{ violation.type.replace('_', ' ').title() }}</strong>
+                                            <br>
+                                            <small>Confidence: {{ "%.0f"|format(violation.confidence * 100) }}%</small>
+                                            <br>
+                                            <small>Fine: ₹{{ 500 if violation.type == 'helmet_violation' else 1000 }}</small>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    
+                                    {% if frame_data.plate_numbers %}
+                                    <div class="mt-3">
+                                        <h6>License Plates:</h6>
+                                        <ul class="list-group">
+                                            {% for plate in frame_data.plate_numbers %}
+                                            <li class="list-group-item">
+                                                <i class="bi bi-card-heading text-warning"></i> {{ plate.number }}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="mt-3">
+                                        <h6>Detection Counts:</h6>
+                                        <small>
+                                            Persons: {{ frame_data.counts.persons }} | 
+                                            Bikes: {{ frame_data.counts.bikes }} | 
+                                            Helmets: {{ frame_data.counts.helmets }} | 
+                                            Plates: {{ frame_data.counts.plates }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>Next Steps</h5>
+                <p>Total violations detected: <strong class="text-danger">{{ result.total_violations }}</strong></p>
+                <p>Total fine amount: <strong class="text-danger">₹{{ "{:,}".format(result.total_fine) }}</strong></p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- No Violations -->
+        <div class="alert alert-success text-center">
+            <h5><i class="bi bi-check-circle"></i> No Violations Detected</h5>
+            <p>The video has been analyzed and no traffic violations were detected.</p>
+            <a href="{{ url_for('index') }}" class="btn btn-success">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+        {% endif %}
+
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

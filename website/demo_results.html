@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Detection Results - Traffic Enforcement System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #34a853;
+            --danger-color: #ea4335;
+            --warning-color: #fbbc04;
+            --dark-bg: #1e293b;
+            --sidebar-bg: #0f172a;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            color: var(--text-primary);
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 260px;
+            background: var(--sidebar-bg);
+            padding: 20px 0;
+            z-index: 1000;
+        }
+
+        .sidebar-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-logo h4 {
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 260px;
+            right: 0;
+            height: 70px;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 999;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            margin-top: 70px;
+            padding: 30px;
+            min-height: calc(100vh - 70px);
+        }
+
+        .results-header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-banner {
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .status-violation {
+            background: linear-gradient(135deg, rgba(234, 67, 53, 0.1), rgba(251, 188, 4, 0.1));
+            border: 2px solid var(--danger-color);
+        }
+
+        .status-clean {
+            background: linear-gradient(135deg, rgba(52, 168, 83, 0.1), rgba(26, 115, 232, 0.1));
+            border: 2px solid var(--secondary-color);
+        }
+
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        .status-icon.danger { color: var(--danger-color); }
+        .status-icon.success { color: var(--secondary-color); }
+
+        .status-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .info-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 12px;
+        }
+
+        .info-icon.primary { background: rgba(26, 115, 232, 0.1); color: var(--primary-color); }
+        .info-icon.success { background: rgba(52, 168, 83, 0.1); color: var(--secondary-color); }
+        .info-icon.danger { background: rgba(234, 67, 53, 0.1); color: var(--danger-color); }
+        .info-icon.warning { background: rgba(251, 188, 4, 0.1); color: var(--warning-color); }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .info-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header-custom {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title-custom {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .card-body-custom {
+            padding: 24px;
+        }
+
+        .violation-item {
+            background: #fef2f2;
+            border-left: 4px solid var(--danger-color);
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .violation-type {
+            font-weight: 600;
+            color: var(--danger-color);
+            margin-bottom: 4px;
+        }
+
+        .violation-details {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .evidence-image {
+            max-width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary-custom {
+            background: var(--primary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-custom:hover {
+            background: #1557b0;
+            transform: translateY(-1px);
+            color: white;
+        }
+
+        .btn-secondary-custom {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary-custom:hover {
+            background: #f8fafc;
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .badge-custom {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge-success { background: rgba(52, 168, 83, 0.1); color: var(--secondary-color); }
+        .badge-danger { background: rgba(234, 67, 53, 0.1); color: var(--danger-color); }
+        .badge-warning { background: rgba(251, 188, 4, 0.1); color: var(--warning-color); }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 20px;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -26px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px var(--border-color);
+        }
+
+        .timeline-content {
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 8px;
+        }
+
+        .timeline-time {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .timeline-text {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <h4><i class="bi bi-shield-check"></i> Traffic AI</h4>
+        </div>
+    </div>
+
+    <!-- Top Header -->
+    <div class="top-header">
+        <h5 style="margin: 0; font-weight: 600;">AI Detection Results</h5>
+        <a href="/" class="btn-secondary-custom">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        {% if result.is_vehicle_image == False %}
+            <!-- No Vehicle Detected -->
+            <div class="status-banner status-clean">
+                <i class="bi bi-info-circle status-icon success"></i>
+                <h2 class="status-title">No Vehicles Detected</h2>
+                <p style="color: var(--text-secondary); margin: 0;">The uploaded image does not contain any detectable vehicles. Please upload a traffic image.</p>
+            </div>
+        {% elif result.violations_found %}
+            <!-- Violations Detected -->
+            <div class="status-banner status-violation">
+                <i class="bi bi-exclamation-triangle-fill status-icon danger"></i>
+                <h2 class="status-title">{{ result.violations|length }} Violation(s) Detected</h2>
+                <p style="color: var(--text-secondary); margin: 0;">AI-powered analysis has identified traffic violations. Review details below.</p>
+            </div>
+
+            <!-- Detection Summary -->
+            <div class="results-grid">
+                <div class="info-card">
+                    <div class="info-icon primary">
+                        <i class="bi bi-car-front-fill"></i>
+                    </div>
+                    <div class="info-label">Vehicle Number</div>
+                    <div class="info-value">{{ result.license_plate }}</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div class="info-label">Violations Found</div>
+                    <div class="info-value">{{ result.violations|length }}</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon warning">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="info-label">Total Fine Amount</div>
+                    <div class="info-value">₹{{ result.total_fine }}</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon success">
+                        <i class="bi bi-geo-alt-fill"></i>
+                    </div>
+                    <div class="info-label">Location</div>
+                    <div class="info-value" style="font-size: 1rem;">{{ result.location }}</div>
+                </div>
+            </div>
+
+            <!-- Violations Detail -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h5 class="card-title-custom"><i class="bi bi-list-check me-2"></i>Detected Violations</h5>
+                </div>
+                <div class="card-body-custom">
+                    {% for violation in result.violations %}
+                    <div class="violation-item">
+                        <div class="violation-type">
+                            <i class="bi bi-shield-x me-2"></i>
+                            {{ violation.type.replace('_', ' ').title() }}
+                        </div>
+                        <div class="violation-details">
+                            <i class="bi bi-cpu me-1"></i>
+                            AI Confidence: {{ "%.1f"|format(violation.confidence * 100) }}%
+                            {% if violation.type == 'helmet_violation' %}
+                            | Fine: ₹500
+                            {% elif violation.type == 'triple_riding' %}
+                            | Fine: ₹1000
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Evidence Images -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="content-card">
+                        <div class="card-header-custom">
+                            <h5 class="card-title-custom"><i class="bi bi-image me-2"></i>Original Image</h5>
+                        </div>
+                        <div class="card-body-custom">
+                            <img src="/media/uploads/{{ result.image_path.split('/')[-1] }}" class="evidence-image" alt="Original">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    {% if result.annotated_image_path %}
+                    <div class="content-card">
+                        <div class="card-header-custom">
+                            <h5 class="card-title-custom"><i class="bi bi-box-seam me-2"></i>AI Detection Overlay</h5>
+                        </div>
+                        <div class="card-body-custom">
+                            <img src="/media/violations/{{ result.annotated_image_path.split('/')[-1] }}" class="evidence-image" alt="Annotated">
+                            <p class="text-secondary mt-3 mb-0" style="font-size: 0.9rem;">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Color codes: <span class="badge-danger">Red</span> - Violation, 
+                                <span class="badge-success">Green</span> - Compliant, 
+                                <span class="badge-custom" style="background: rgba(26, 115, 232, 0.1); color: #1a73e8;">Blue</span> - Helmet
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Detection Timeline -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h5 class="card-title-custom"><i class="bi bi-clock-history me-2"></i>Detection Timeline</h5>
+                </div>
+                <div class="card-body-custom">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-time">{{ result.processed_at }}</div>
+                                <div class="timeline-text"><strong>Image uploaded</strong> - {{ result.location }}</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-time">YOLOv8 Analysis</div>
+                                <div class="timeline-text"><strong>AI Detection completed</strong> - {{ result.violations|length }} violation(s) identified</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-time">OCR Processing</div>
+                                <div class="timeline-text"><strong>License plate extracted</strong> - {{ result.license_plate }}</div>
+                            </div>
+                        </div>
+                        {% if violation_id %}
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-time">E-Challan Generated</div>
+                                <div class="timeline-text"><strong>Violation recorded</strong> - ID: {{ violation_id }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h5 class="card-title-custom"><i class="bi bi-gear me-2"></i>Available Actions</h5>
+                </div>
+                <div class="card-body-custom">
+                    <div class="action-buttons">
+                        {% if violation_id %}
+                        <a href="/violation/{{ violation_id }}" class="btn-primary-custom">
+                            <i class="bi bi-file-earmark-text me-2"></i>View E-Challan
+                        </a>
+                        {% endif %}
+                        <a href="/" class="btn-secondary-custom">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                        <button class="btn-secondary-custom" onclick="window.print()">
+                            <i class="bi bi-printer me-2"></i>Print Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            <!-- No Violations -->
+            <div class="status-banner status-clean">
+                <i class="bi bi-check-circle-fill status-icon success"></i>
+                <h2 class="status-title">No Violations Detected</h2>
+                <p style="color: var(--text-secondary); margin: 0;">AI analysis complete. Vehicle is compliant with traffic regulations.</p>
+            </div>
+
+            <!-- Detection Summary -->
+            <div class="results-grid">
+                <div class="info-card">
+                    <div class="info-icon primary">
+                        <i class="bi bi-car-front-fill"></i>
+                    </div>
+                    <div class="info-label">Vehicle Number</div>
+                    <div class="info-value">{{ result.license_plate }}</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon success">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <div class="info-label">Status</div>
+                    <div class="info-value">Compliant</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon success">
+                        <i class="bi bi-geo-alt-fill"></i>
+                    </div>
+                    <div class="info-label">Location</div>
+                    <div class="info-value" style="font-size: 1rem;">{{ result.location }}</div>
+                </div>
+            </div>
+
+            <!-- Evidence -->
+            <div class="content-card">
+                <div class="card-header-custom">
+                    <h5 class="card-title-custom"><i class="bi bi-image me-2"></i>Analyzed Image</h5>
+                </div>
+                <div class="card-body-custom text-center">
+                    <img src="/media/uploads/{{ result.image_path.split('/')[-1] }}" class="evidence-image" alt="Analyzed" style="max-width: 600px;">
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="action-buttons">
+                <a href="/" class="btn-primary-custom">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle: {{ vehicle_no }} - Road Safety Violation Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <style>
+        .map-container {
+            height: 200px;
+            border-radius: var(--border-radius-small);
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+        }
+        .violation-thumbnail {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: var(--border-radius-small);
+            transition: transform 0.3s ease;
+        }
+        .violation-thumbnail:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Modern Header -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-5 fw-bold mb-2">
+                        <i class="bi bi-car-front me-3"></i>{{ vehicle_no }}
+                    </h1>
+                    <p class="lead mb-0 opacity-90">Vehicle Violation History & Payment Status</p>
+                </div>
+                <a href="/" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left"></i> Back to Search
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-4">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else category }} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-{{ 'exclamation-triangle' if category == 'error' else 'exclamation-triangle' if category == 'warning' else 'check-circle' if category == 'success' else 'info-circle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Vehicle Information -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="card-title mb-0">
+                            <i class="bi bi-info-circle"></i> Vehicle Information
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Vehicle Number:</strong> <span class="badge bg-secondary">{{ vehicle_no }}</span></p>
+                                {% if owner %}
+                                    <p><strong>Owner Name:</strong> {{ owner.owner_name }}</p>
+                                {% else %}
+                                    <p><strong>Owner:</strong> <span class="text-muted">Not found in database</span></p>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Total Violations:</strong> 
+                                    <span class="badge bg-{{ 'danger' if violations|length > 0 else 'success' }}">
+                                        {{ violations|length }}
+                                    </span>
+                                </p>
+                                {% set paid_count = violations|selectattr('paid')|list|length %}
+                                {% set unpaid_count = violations|length - paid_count %}
+                                <p><strong>Payment Status:</strong> 
+                                    <span class="badge bg-success">{{ paid_count }} Paid</span>
+                                    <span class="badge bg-danger">{{ unpaid_count }} Unpaid</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Violations List -->
+        {% if violations %}
+            <h3 class="mb-3">
+                <i class="bi bi-list-ul"></i> Violation History
+            </h3>
+            
+            {% for violation in violations %}
+                <div class="card violation-card {{ 'paid' if violation.paid else '' }} mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Violation Image -->
+                            <div class="col-md-3">
+                                {% if violation.image_path %}
+                                    {% set filename = violation.image_path.split('/')[-1] %}
+                                    <img src="{{ url_for('serve_violation_image', filename=filename) }}" 
+                                         alt="Violation evidence" 
+                                         class="violation-thumbnail">
+                                {% else %}
+                                    <div class="violation-thumbnail bg-light d-flex align-items-center justify-content-center">
+                                        <i class="bi bi-image text-muted display-6"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Violation Details -->
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title text-danger mb-0">{{ violation.violation_type }}</h5>
+                                    {% if violation.paid %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> PAID
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-exclamation-circle"></i> UNPAID
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <p class="text-muted mb-2">
+                                    <i class="bi bi-calendar"></i> {{ violation.timestamp }}
+                                </p>
+                                
+                                {% if violation.location_text %}
+                                    <p class="text-muted mb-2">
+                                        <i class="bi bi-geo-alt"></i> {{ violation.location_text }}
+                                    </p>
+                                {% endif %}
+                                
+                                <p class="mb-2">
+                                    <strong>Fine Amount:</strong> 
+                                    <span class="text-success fw-bold fs-5">₹{{ violation.fine_amount }}</span>
+                                </p>
+                                
+                                {% if violation.paid %}
+                                    <p class="text-muted mb-0">
+                                        <small>
+                                            <i class="bi bi-credit-card"></i> 
+                                            Payment ID: {{ violation.payment_id }}<br>
+                                            <i class="bi bi-clock"></i> 
+                                            Paid on: {{ violation.paid_at }}
+                                        </small>
+                                    </p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Actions and Map -->
+                            <div class="col-md-3">
+                                <!-- Map -->
+                                {% if violation.latitude and violation.longitude %}
+                                    <div class="map-container mb-3" id="map-{{ violation.id }}"></div>
+                                {% endif %}
+                                
+                                <!-- Action Buttons -->
+                                <div class="d-grid gap-2">
+                                    <a href="/violation/{{ violation.id }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> View Details
+                                    </a>
+                                    
+                                    {% if violation.pdf_path %}
+                                        <a href="/violation/{{ violation.id }}/pdf" class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                                        </a>
+                                    {% endif %}
+                                    
+                                    {% if not violation.paid %}
+                                        <button class="btn btn-success btn-sm" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#payment-{{ violation.id }}"
+                                                onclick="loadDynamicQR({{ violation.id }}, {{ violation.fine_amount }})">
+                                            <i class="bi bi-qr-code"></i> Pay Now ₹{{ violation.fine_amount }}
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- QR Payment Section -->
+                        {% if not violation.paid %}
+                            <div class="collapse" id="payment-{{ violation.id }}">
+                                <div class="qr-payment-section mt-3">
+                                    <h6 class="fw-bold mb-3">
+                                        <i class="bi bi-qr-code"></i> Scan QR Code to Pay ₹{{ violation.fine_amount }}
+                                    </h6>
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4 text-center">
+                                            <div id="qr-container-{{ violation.id }}">
+                                                <div class="spinner-border text-success" role="status">
+                                                    <span class="visually-hidden">Generating secure payment QR...</span>
+                                                </div>
+                                                <p class="small text-muted mt-2">Generating secure payment QR...</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <form action="/confirm_qr_payment/{{ violation.id }}" method="POST">
+                                                <div class="mb-3">
+                                                    <label for="email-{{ violation.id }}" class="form-label">
+                                                        Email Address (for receipt):
+                                                    </label>
+                                                    <input type="email" 
+                                                           class="form-control" 
+                                                           id="email-{{ violation.id }}" 
+                                                           name="payer_email" 
+                                                           placeholder="your@email.com" 
+                                                           required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="transaction-{{ violation.id }}" class="form-label">
+                                                        <strong>UPI Transaction ID:</strong>
+                                                    </label>
+                                                    <input type="text" 
+                                                           class="form-control" 
+                                                           id="transaction-{{ violation.id }}" 
+                                                           name="transaction_id" 
+                                                           placeholder="Enter Transaction ID from your UPI app" 
+                                                           minlength="8"
+                                                           required>
+                                                    <div class="form-text">
+                                                        <small>Find this in your UPI app after payment (e.g., 123456789012)</small>
+                                                    </div>
+                                                </div>
+                                                <div class="d-grid">
+                                                    <button type="submit" class="btn btn-success">
+                                                        <i class="bi bi-shield-check"></i> Verify Payment ₹{{ violation.fine_amount }}
+                                                    </button>
+                                                </div>
+                                            </form>
+                                            <div class="alert alert-info mt-3">
+                                                <small>
+                                                    <i class="bi bi-shield-check"></i> 
+                                                    <strong>Secure Payment:</strong> QR code contains exact amount ₹{{ violation.fine_amount }} - cannot be modified
+                                                </small>
+                                            </div>
+                                            <div class="alert alert-success mt-2">
+                                                <small>
+                                                    <i class="bi bi-info-circle"></i> 
+                                                    <strong>Steps:</strong> 1) Scan QR code → 2) Confirm amount ₹{{ violation.fine_amount }} → 3) Pay via UPI → 4) Enter Transaction ID → 5) Click Verify
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-check-circle-fill text-success display-1"></i>
+                <h3 class="mt-3">No Violations Found</h3>
+                <p class="text-muted">This vehicle has no recorded violations in our system.</p>
+                <div class="mt-3">
+                    <a href="/telangana-police" class="btn btn-outline-info">
+                        <i class="bi bi-shield-check"></i> Check Telangana Police e-Challan System
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize maps for violations with coordinates
+        {% for violation in violations %}
+            {% if violation.latitude and violation.longitude %}
+                var map{{ violation.id }} = L.map('map-{{ violation.id }}').setView([{{ violation.latitude }}, {{ violation.longitude }}], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map{{ violation.id }});
+                
+                L.marker([{{ violation.latitude }}, {{ violation.longitude }}])
+                    .addTo(map{{ violation.id }})
+                    .bindPopup('Violation Location<br>{{ violation.location_text or "Violation detected here" }}');
+            {% endif %}
+        {% endfor %}
+        
+        // Dynamic QR code generation function
+        function loadDynamicQR(violationId, amount) {
+            const container = document.getElementById(`qr-container-${violationId}`);
+            
+            // Show loading state
+            container.innerHTML = `
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Generating secure payment QR...</span>
+                </div>
+                <p class="small text-muted mt-2">Generating payment QR for ₹${amount}...</p>
+            `;
+            
+            // Generate dynamic QR code with exact amount
+            setTimeout(() => {
+                container.innerHTML = `
+                    <img src="/generate_qr/${violationId}" 
+                         alt="Secure payment QR for ₹${amount}" 
+                         class="img-fluid" 
+                         style="max-width: 150px;"
+                         onload="this.style.border='2px solid #28a745'; this.style.borderRadius='8px';">
+                    <p class="small text-success mt-2 fw-bold">
+                        <i class="bi bi-shield-check"></i> Secure QR: ₹${amount}
+                    </p>
+                    <p class="small text-muted">Amount locked - cannot be modified</p>
+                `;
+            }, 500);
+        }
+    </script>
+</body>
+</html>

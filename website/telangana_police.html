@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telangana Police e-Challan Dashboard - Road Safety Violation Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <!-- Modern Header -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-5 fw-bold mb-2">
+                        <i class="bi bi-shield-check me-3"></i>Telangana Police e-Challan System
+                    </h1>
+                    <p class="lead mb-0 opacity-90">Recent Traffic Violations & e-Challans</p>
+                </div>
+                <div>
+                    <a href="/" class="btn btn-outline-light me-2">
+                        <i class="bi bi-arrow-left"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-4">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else category }} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-{{ 'exclamation-triangle' if category == 'error' else 'exclamation-triangle' if category == 'warning' else 'check-circle' if category == 'success' else 'info-circle' }}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Search Form -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="card-title mb-0">
+                            <i class="bi bi-search"></i> Search Telangana Police Records
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form action="/search-telangana" method="post">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="search_type" class="form-label fw-bold">Search By:</label>
+                                    <select class="form-select" id="search_type" name="search_type">
+                                        <option value="vehicle">Vehicle Number</option>
+                                        <option value="challan">Challan Number</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="search_value" class="form-label fw-bold">Enter Value:</label>
+                                    <input type="text" class="form-control" id="search_value" name="search_value" 
+                                           placeholder="TS05FH4947 or Challan Number" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="submit" class="btn btn-info w-100">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5 class="card-title">Total e-Challans</h5>
+                                <h2 class="mb-0">{{ challans|length }}</h2>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-file-text display-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5 class="card-title">Paid Challans</h5>
+                                {% set paid_count = challans|selectattr('payment_status', 'equalto', 'Paid')|list|length %}
+                                <h2 class="mb-0">{{ paid_count }}</h2>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-check-circle display-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-danger">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5 class="card-title">Unpaid Challans</h5>
+                                {% set unpaid_count = challans|selectattr('payment_status', 'equalto', 'Unpaid')|list|length %}
+                                <h2 class="mb-0">{{ unpaid_count }}</h2>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-exclamation-circle display-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent e-Challans -->
+        <h3 class="mb-3">
+            <i class="bi bi-clock-history"></i> Recent e-Challans (Last 30 Days)
+        </h3>
+
+        {% if challans %}
+            {% for challan in challans %}
+                <div class="card challan-card mb-3 shadow-sm border-info">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <!-- Challan Info -->
+                            <div class="col-md-3">
+                                <h6 class="card-title text-info mb-1">
+                                    <i class="bi bi-file-text"></i> {{ challan.challan_number }}
+                                </h6>
+                                <p class="text-muted mb-0 small">{{ challan.challan_date }}</p>
+                            </div>
+                            
+                            <!-- Vehicle & Violation -->
+                            <div class="col-md-3">
+                                <p class="mb-1">
+                                    <strong>Vehicle:</strong> 
+                                    <a href="/vehicle/{{ challan.vehicle_number }}" class="text-decoration-none">
+                                        {{ challan.vehicle_number }}
+                                    </a>
+                                </p>
+                                <p class="mb-0 text-danger">{{ challan.violation_type }}</p>
+                            </div>
+                            
+                            <!-- Location & Fine -->
+                            <div class="col-md-3">
+                                <p class="mb-1 small text-muted">
+                                    <i class="bi bi-geo-alt"></i> {{ challan.location[:30] }}{% if challan.location|length > 30 %}...{% endif %}
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Fine:</strong> 
+                                    <span class="text-danger fw-bold">₹{{ challan.fine_amount }}</span>
+                                </p>
+                            </div>
+                            
+                            <!-- Status & Actions -->
+                            <div class="col-md-3 text-end">
+                                {% if challan.payment_status == 'Paid' %}
+                                    <span class="badge bg-success mb-2">
+                                        <i class="bi bi-check-circle"></i> PAID
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger mb-2">
+                                        <i class="bi bi-exclamation-circle"></i> UNPAID
+                                    </span>
+                                {% endif %}
+                                <br>
+                                <a href="/telangana-police/challan/{{ challan.challan_number }}" 
+                                   class="btn btn-outline-info btn-sm">
+                                    <i class="bi bi-eye"></i> View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-info-circle-fill text-info display-1"></i>
+                <h3 class="mt-3">No Recent e-Challans</h3>
+                <p class="text-muted">No recent e-challan data found in the Telangana Police system.</p>
+                <a href="/" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Search for Vehicle
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- Footer Information -->
+        <div class="alert alert-light mt-4">
+            <h6><i class="bi bi-info-circle"></i> About Telangana Police e-Challan System</h6>
+            <p class="mb-0 small">
+                This system integrates with the official Telangana State Police e-Challan system to provide 
+                real-time traffic violation information. Data is sourced from multiple official portals including 
+                the Telangana Police portal and National Parivahan system.
+            </p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

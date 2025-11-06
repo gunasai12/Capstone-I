@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Enforcement System - AI-Powered Violation Detection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #34a853;
+            --danger-color: #ea4335;
+            --warning-color: #fbbc04;
+            --dark-bg: #1e293b;
+            --sidebar-bg: #0f172a;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 260px;
+            background: var(--sidebar-bg);
+            padding: 20px 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-logo h4 {
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .sidebar-logo p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.75rem;
+            margin: 5px 0 0;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+        }
+
+        .nav-item {
+            margin: 5px 15px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 12px;
+            font-size: 1.2rem;
+            width: 24px;
+        }
+
+        /* Top Header */
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 260px;
+            right: 0;
+            height: 70px;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 999;
+        }
+
+        .header-search {
+            flex: 1;
+            max-width: 500px;
+        }
+
+        .header-search input {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 15px 10px 40px;
+            width: 100%;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            margin-top: 70px;
+            padding: 30px;
+            min-height: calc(100vh - 70px);
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon.primary { background: rgba(26, 115, 232, 0.1); color: var(--primary-color); }
+        .stat-icon.success { background: rgba(52, 168, 83, 0.1); color: var(--secondary-color); }
+        .stat-icon.danger { background: rgba(234, 67, 53, 0.1); color: var(--danger-color); }
+        .stat-icon.warning { background: rgba(251, 188, 4, 0.1); color: var(--warning-color); }
+
+        .stat-title {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+        }
+
+        .stat-change.negative {
+            color: var(--danger-color);
+        }
+
+        /* Content Cards */
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-header-custom {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title-custom {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .card-body-custom {
+            padding: 24px;
+        }
+
+        /* Detection Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(26, 115, 232, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: rgba(26, 115, 232, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Buttons */
+        .btn-primary-custom {
+            background: var(--primary-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-custom:hover {
+            background: #1557b0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+        }
+
+        .btn-secondary-custom {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary-custom:hover {
+            background: #f8fafc;
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* Table */
+        .table-custom {
+            width: 100%;
+        }
+
+        .table-custom thead {
+            background: #f8fafc;
+        }
+
+        .table-custom th {
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-custom td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .badge-custom {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge-success { background: rgba(52, 168, 83, 0.1); color: var(--secondary-color); }
+        .badge-danger { background: rgba(234, 67, 53, 0.1); color: var(--danger-color); }
+        .badge-warning { background: rgba(251, 188, 4, 0.1); color: var(--warning-color); }
+        .badge-primary { background: rgba(26, 115, 232, 0.1); color: var(--primary-color); }
+
+        /* Form Styles */
+        .form-control-custom {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control-custom:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        }
+
+        .form-label-custom {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* Alert Messages */
+        .alert-custom {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: rgba(52, 168, 83, 0.1);
+            border-color: var(--secondary-color);
+            color: #0d5e2a;
+        }
+
+        .alert-danger {
+            background: rgba(234, 67, 53, 0.1);
+            border-color: var(--danger-color);
+            color: #b71c1c;
+        }
+
+        .alert-info {
+            background: rgba(26, 115, 232, 0.1);
+            border-color: var(--primary-color);
+            color: #0d47a1;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .top-header, .main-content {
+                margin-left: 0;
+                left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* AI Detection Cards */
+        .ai-detection-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .ai-detection-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .detection-image-container {
+            position: relative;
+            width: 100%;
+            padding-top: 66.67%; /* 3:2 aspect ratio */
+            overflow: hidden;
+            background: var(--light-bg);
+        }
+
+        .detection-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .detection-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 2;
+        }
+
+        .detection-badge .badge {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .detection-details {
+            padding: 16px;
+        }
+
+        .detection-info {
+            margin-bottom: 12px;
+        }
+
+        .detection-vehicle {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .detection-location {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .detection-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .detection-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .detection-fine {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--light-bg);
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .fine-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .fine-amount {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--danger-color);
+        }
+
+        .badge-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <h4><i class="bi bi-shield-check"></i> Traffic AI</h4>
+            <p>AI-Powered Enforcement System</p>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link active">
+                    <i class="bi bi-speedometer2"></i>
+                    Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#detection-section" class="nav-link">
+                    <i class="bi bi-camera-video"></i>
+                    AI Detection
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#violations-section" class="nav-link">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Violations
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="window.location.href='/telangana-police'">
+                    <i class="bi bi-search"></i>
+                    Search Challan
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#analytics-section" class="nav-link">
+                    <i class="bi bi-graph-up"></i>
+                    Analytics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="bi bi-gear"></i>
+                    Settings
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="header-search position-relative">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" class="form-control" placeholder="Search violations, vehicles, locations...">
+        </div>
+        <div class="header-actions">
+            <button class="notification-btn">
+                <i class="bi bi-bell"></i>
+                <span class="notification-badge">3</span>
+            </button>
+            <div class="user-profile">
+                <div class="user-avatar">AI</div>
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem;">Traffic Admin</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Administrator</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Traffic Enforcement Dashboard</h1>
+            <p class="page-subtitle">Real-time AI-powered violation detection and management system</p>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert-custom alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'info' }}">
+                        <i class="bi bi-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'error' else 'info-circle' }}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-title">Total Violations</div>
+                    </div>
+                    <div class="stat-icon primary">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ stats['total_violations'] }}</div>
+                <div class="stat-change">
+                    <i class="bi bi-arrow-up"></i> 12% from last month
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-title">Total Fines Collected</div>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                </div>
+                <div class="stat-value">₹{{ "{:,}".format(stats['total_fines']) }}</div>
+                <div class="stat-change">
+                    <i class="bi bi-arrow-up"></i> 8% from last month
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-title">Helmet Violations</div>
+                    </div>
+                    <div class="stat-icon danger">
+                        <i class="bi bi-shield-x"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ stats['violations_by_type'].get('Riding without Helmet', 0) }}</div>
+                <div class="stat-change negative">
+                    <i class="bi bi-arrow-down"></i> 5% from last month
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-title">AI Detection Rate</div>
+                    </div>
+                    <div class="stat-icon warning">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                </div>
+                <div class="stat-value">96%</div>
+                <div class="stat-change">
+                    <i class="bi bi-arrow-up"></i> 2% accuracy improvement
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Detection Section -->
+        <div id="detection-section" class="content-card">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom"><i class="bi bi-camera-video me-2"></i>AI-Powered Violation Detection</h5>
+                <span class="badge-custom badge-success">YOLOv8 Active</span>
+            </div>
+            <div class="card-body-custom">
+                <form method="POST" action="/demo-detection" enctype="multipart/form-data" id="detectionForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom">Upload Traffic Image or Video</label>
+                            <div class="upload-area" id="uploadArea">
+                                <i class="bi bi-cloud-upload upload-icon"></i>
+                                <div class="upload-text">Click to upload or drag and drop</div>
+                                <div class="upload-hint">Images (PNG, JPG, JPEG) or Videos (MP4, AVI, MOV) up to 100MB</div>
+                                <input type="file" name="vehicle_image" id="fileInput" accept="image/*,video/*" class="hidden" required>
+                            </div>
+                            <div id="imagePreview" class="mt-3" style="display:none;">
+                                <img id="previewImg" style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color);">
+                            </div>
+                            <div id="videoPreview" class="mt-3" style="display:none;">
+                                <video id="previewVideo" controls style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color);"></video>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label-custom">Location</label>
+                                <input type="text" name="location" class="form-control-custom" placeholder="Enter violation location" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label-custom">Date & Time</label>
+                                <input type="datetime-local" name="violation_datetime" class="form-control-custom" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label-custom">Detection Mode</label>
+                                <select class="form-control-custom">
+                                    <option>Real-time AI Detection (YOLOv8)</option>
+                                    <option>Helmet Violation Detection</option>
+                                    <option>Triple Riding Detection</option>
+                                    <option>All Violations</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary-custom w-100" id="analyzeBtn">
+                                <i class="bi bi-cpu me-2"></i>Analyze with AI
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="loadingState" class="hidden">
+                    <div class="loader"></div>
+                    <p class="text-center text-secondary">Analyzing image with AI...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent AI Detections -->
+        {% if recent_ai_detections %}
+        <div id="recent-ai-section" class="content-card">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom"><i class="bi bi-robot me-2"></i>Recent AI Detections</h5>
+                <span class="badge-custom badge-info">Last 10 Analyzed</span>
+            </div>
+            <div class="card-body-custom">
+                <div class="row g-3">
+                    {% for detection in recent_ai_detections %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="ai-detection-card">
+                            <!-- Annotated Image -->
+                            <div class="detection-image-container">
+                                {% if 'storage' in detection.image_path %}
+                                    {% set img_path = detection.image_path.split('storage/')[-1] %}
+                                    <img src="{{ url_for('serve_storage_file', filename=img_path) }}" 
+                                         alt="AI Detection" 
+                                         class="detection-image"
+                                         onerror="this.src='https://via.placeholder.com/400x300?text=Image+Not+Found'">
+                                {% else %}
+                                    <img src="{{ url_for('serve_violation_image', filename=detection.image_path) }}" 
+                                         alt="AI Detection" 
+                                         class="detection-image"
+                                         onerror="this.src='https://via.placeholder.com/400x300?text=Image+Not+Found'">
+                                {% endif %}
+                                <div class="detection-badge">
+                                    {% if 'helmet' in detection.violation_type.lower() %}
+                                    <span class="badge bg-danger"><i class="bi bi-shield-x"></i> Helmet Violation</span>
+                                    {% elif 'triple' in detection.violation_type.lower() %}
+                                    <span class="badge bg-warning"><i class="bi bi-people"></i> Triple Riding</span>
+                                    {% else %}
+                                    <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Violation</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Detection Details -->
+                            <div class="detection-details">
+                                <div class="detection-info">
+                                    <div class="detection-vehicle">
+                                        <i class="bi bi-hash"></i> {{ detection.vehicle_no }}
+                                    </div>
+                                    <div class="detection-location">
+                                        <i class="bi bi-geo-alt"></i> {{ detection.location[:30] }}{% if detection.location|length > 30 %}...{% endif %}
+                                    </div>
+                                    <div class="detection-meta">
+                                        <span><i class="bi bi-calendar3"></i> {{ detection.datetime[:16] }}</span>
+                                        {% if detection.confidence > 0 %}
+                                        <span><i class="bi bi-cpu"></i> {{ "%.0f"|format(detection.confidence * 100) }}% confidence</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="detection-fine">
+                                    <span class="fine-label">Fine:</span>
+                                    <span class="fine-amount">₹{{ detection.fine_amount }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="#violations-section" class="btn-secondary-custom">
+                        <i class="bi bi-list me-2"></i>View All Violations
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Violations -->
+        <div id="violations-section" class="content-card">
+            <div class="card-header-custom">
+                <h5 class="card-title-custom"><i class="bi bi-list-task me-2"></i>Recent Violations</h5>
+                <button class="btn-secondary-custom btn-sm">
+                    <i class="bi bi-download me-2"></i>Export
+                </button>
+            </div>
+            <div class="card-body-custom">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vehicle No</th>
+                            <th>Violation Type</th>
+                            <th>Location</th>
+                            <th>Fine Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#V001</td>
+                            <td>KA05MN1234</td>
+                            <td>Riding without Helmet</td>
+                            <td>MG Road, Bangalore</td>
+                            <td>₹500</td>
+                            <td><span class="badge-custom badge-danger">Pending</span></td>
+                            <td>
+                                <button class="btn-secondary-custom btn-sm">View</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#V002</td>
+                            <td>TN07AB5678</td>
+                            <td>Triple Riding</td>
+                            <td>Anna Salai, Chennai</td>
+                            <td>₹1000</td>
+                            <td><span class="badge-custom badge-success">Paid</span></td>
+                            <td>
+                                <button class="btn-secondary-custom btn-sm">View</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#V003</td>
+                            <td>MH12XY9012</td>
+                            <td>Riding without Helmet + Triple Riding</td>
+                            <td>Marine Drive, Mumbai</td>
+                            <td>₹1500</td>
+                            <td><span class="badge-custom badge-warning">Processing</span></td>
+                            <td>
+                                <button class="btn-secondary-custom btn-sm">View</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const detectionForm = document.getElementById('detectionForm');
+        const loadingState = document.getElementById('loadingState');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                fileInput.files = e.dataTransfer.files;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Form submission
+        detectionForm.addEventListener('submit', function() {
+            loadingState.classList.remove('hidden');
+        });
+
+        // Set current datetime
+        document.querySelector('input[name="violation_datetime"]').value = new Date().toISOString().slice(0, 16);
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href.startsWith('#')) {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    
+                    // Update active state
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

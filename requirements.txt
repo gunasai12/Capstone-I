@@ -1,0 +1,13 @@
+flask>=2.0.0
+fpdf>=2.5.7
+opencv-python>=4.5.0
+pillow>=9.0.0
+sqlalchemy>=1.4.0
+numpy>=1.21.0
+
+# Optional packages for enhanced functionality
+# Install these if available, the system gracefully falls back if missing
+# ultralytics>=8.0.0  # For YOLOv8 detection
+# easyocr>=1.6.0      # For number plate OCR
+# pytesseract>=0.3.8  # Alternative OCR
+# openai>=1.0.0       # For enhanced descriptions
