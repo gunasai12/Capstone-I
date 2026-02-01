@@ -75,52 +75,20 @@ An AI-powered system that detects traffic violations, identifies number plates, 
 
 ## 📂 Project Structure  
 
-\`\`\`
+```
 road_safety_violation_detector/
-│── website/            # Web app (Flask)
-│── services/           # AI, OCR, PDF & business logic
-│── db/                 # Models & migrations
-│── scripts/            # Setup & demo scripts
+│
+├── website/            # Web app (Flask)
+├── services/           # AI, OCR, PDF & business logic
+├── db/                 # Models & migrations
+├── scripts/            # Setup & demo scripts
 └── storage/            # Evidence images & PDFs
-\`\`\`
+```
+
+
 
 ---
 
-## ⚙️ Installation  
-
-### Clone Repository  
-
-\`\`\`bash
-git clone <repository-url>
-cd road_safety_violation_detector
-pip install -r requirements.txt
-\`\`\`
-
----
-
-### Setup Database  
-
-\`\`\`bash
-python db/migrate.py
-python scripts/seed_demo_data.py
-\`\`\`
-
----
-
-### Run Web App  
-
-\`\`\`bash
-cd website
-python app.py
-\`\`\`
-
-Access the application at:
-
-\`\`\`
-http://localhost:5000
-\`\`\`
-
----
 
 ## 📄 API & Routes  
 
@@ -180,4 +148,18 @@ python scripts/run_quick_demo.py
 ## 📌 Notes  
 
 - Educational/demo use only  
-- Add real payment gateway & production-grade security before deployment  
+- Add real payment gateway & production-grade security before deployment
+---
+
+## 👨‍💻 Author  
+
+**Gunasai**  
+B.Tech Final Year Student  
+AI & ML Enthusiast  
+
+📧 Email: ganumulapally@gmail.com  
+🔗 LinkedIn: [Gunasai Anumulapally](https://www.linkedin.com/in/gunasai-anumulapally-8204b3251)
+---
+
+
+
